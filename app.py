@@ -230,8 +230,21 @@ def logs(name):
 
 @app.route("/remove/image/<img_id>")
 def remove_image(img_id):
+    # 🔍 Find containers using this image
+    containers = run_cmd(
+        f"docker ps -a --filter ancestor={img_id} --format '{{{{.ID}}}}'"
+    )
+
+    # 🛑 Stop & 🗑️ Remove containers
+    if containers:
+        for cid in containers.splitlines():
+            run_cmd(f"docker stop {cid}")
+            run_cmd(f"docker rm {cid}")
+
+    # 🧹 Remove image
     run_cmd(f"docker rmi -f {img_id}")
-    flash("Image removed")
+    flash("Image removed and all related containers stopped & deleted")
+
     return redirect(url_for("index"))
 
 
