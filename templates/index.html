@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Docker Web UI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: white;
+            font-size: 2.5em;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .tabs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .tabs button {
+            padding: 12px 30px;
+            border: none;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 25px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .tabs button:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        
+        .tabs button.active {
+            background: white;
+            color: #667eea;
+            border-color: white;
+        }
+        
+        .alert {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .tab {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .form-box {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 25px;
+            border-radius: 10px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .form-box input,
+        .form-box select {
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background: white;
+        }
+        
+        .form-box input:focus,
+        .form-box select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+        }
+        
+        .form-box button {
+            padding: 12px 25px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            grid-column: span 2;
+        }
+        
+        .form-box button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102,126,234,0.4);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 14px;
+            letter-spacing: 1px;
+        }
+        
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background 0.2s ease;
+        }
+        
+        tr:hover td {
+            background: #f8f9ff;
+        }
+        
+        tr.stopped {
+            background: #fff5f5;
+        }
+        
+        tr.stopped:hover td {
+            background: #ffe0e0;
+        }
+        
+        .btn {
+            padding: 8px 15px;
+            color: white;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            display: inline-block;
+            margin: 2px;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        
+        .red { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .green { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .orange { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+        .blue { background: linear-gradient(135deg, #30cfd0 0%, #330867 100%); }
+        
+        .logs-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 500px;
+            max-height: 85vh;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            animation: slideInRight 0.3s ease;
+        }
+        
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .logs-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 15px 15px 0 0;
+        }
+        
+        .logs-header h3 {
+            margin: 0;
+            font-size: 18px;
+        }
+        
+        .close-logs {
+            color: white;
+            text-decoration: none;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 0 10px;
+            transition: all 0.3s ease;
+            border-radius: 50%;
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .close-logs:hover {
+            background: rgba(255,255,255,0.2);
+            transform: rotate(90deg);
+        }
+        
+        .logs {
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 20px;
+            margin: 0;
+            flex: 1;
+            overflow: auto;
+            border-radius: 0 0 15px 15px;
+            font-size: 13px;
+            font-family: 'Courier New', monospace;
+            line-height: 1.6;
+        }
+        
+        .logs::-webkit-scrollbar {
+            width: 10px;
+        }
+        
+        .logs::-webkit-scrollbar-track {
+            background: #2a2a2a;
+        }
+        
+        .logs::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 5px;
+        }
+        
+        .logs::-webkit-scrollbar-thumb:hover {
+            background: #764ba2;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .status-running {
+            background: #00ff00;
+            box-shadow: 0 0 10px #00ff00;
+        }
+        
+        .status-stopped {
+            background: #ff4444;
+            box-shadow: 0 0 10px #ff4444;
+        }
+        
+        @media (max-width: 768px) {
+            .logs-panel {
+                width: 90%;
+                right: 5%;
+            }
+            
+            .form-box {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 1.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🐳 Docker Web Dashboard</h1>
+
+    <div class="tabs">
+        <button onclick="showTab('containers')" class="active">🔷 Containers</button>
+        <button onclick="showTab('images')">💿 Images</button>
+        <button onclick="showTab('volumes')">📦 Volumes</button>
+        <button onclick="showTab('networks')">🌐 Networks</button>
+    </div>
+
+    <!-- Alert Messages -->
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    <div class="alert">
+        {% for m in messages %}<p>{{ m }}</p>{% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <!-- ================= CONTAINERS ================= -->
+    <section id="containers" class="tab">
+        <h2>Create Container</h2>
+        <form method="POST" class="form-box">
+            <input type="hidden" name="action" value="create_container">
+            <input name="image" placeholder="🖼️ Image (ubuntu/mysql/nginx)" required>
+            <input name="container" placeholder="📛 Container Name" required>
+            <select name="ctype">
+                <option value="linux">🐧 Linux Server</option>
+                <option value="db">💾 Database</option>
+                <option value="web">🌐 Web Server</option>
+            </select>
+            <input name="envs" placeholder="🔐 DB Env (MYSQL_ROOT_PASSWORD=1234)">
+            <select name="port_mode">
+                <option value="auto">🔄 Auto Port</option>
+                <option value="manual">⚙️ Manual Port</option>
+            </select>
+            <input name="hp" placeholder="🚪 Host Port">
+            <input name="cp" placeholder="🎯 Container Port">
+            <select name="volume">
+                <option value="">📦 Attach Volume</option>
+                {% for v in volumes %}<option value="{{ v }}">{{ v }}</option>{% endfor %}
+            </select>
+            <input name="mount" placeholder="📁 Mount Path">
+            <select name="network">
+                <option value="">🌐 Default Network</option>
+                {% for n in networks %}<option value="{{ n.name }}">{{ n.name }}</option>{% endfor %}
+            </select>
+            <button type="submit">✨ Create Container</button>
+        </form>
+
+        <h2>Active Containers</h2>
+        <table>
+            <tr>
+                <th>Status</th>
+                <th>Name</th>
+                <th>Image</th>
+                <th>Current Status</th>
+                <th>Actions</th>
+            </tr>
+            {% for c in containers %}
+            <tr class="{{ 'stopped' if c.stopped }}">
+                <td>
+                    <span class="status-indicator {{ 'status-running' if not c.stopped else 'status-stopped' }}"></span>
+                </td>
+                <td><strong>{{ c.name }}</strong></td>
+                <td>{{ c.image }}</td>
+                <td>{{ c.status }}</td>
+                <td>
+                    {% if c.stopped %}
+                    <a class="btn green" href="/restart/{{ c.name }}">▶️ Start</a>
+                    {% else %}
+                    <a class="btn orange" href="/stop/{{ c.name }}">⏸️ Stop</a>
+                    {% endif %}
+                    <a class="btn blue" href="/logs/{{ c.name }}">📋 Logs</a>
+                    <a class="btn red" href="/remove/container/{{ c.name }}">🗑️ Remove</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </section>
+
+    <!-- ================= IMAGES ================= -->
+    <section id="images" class="tab hidden">
+        <h2>Docker Images</h2>
+        <table>
+            <tr>
+                <th>Repository</th>
+                <th>Image ID</th>
+                <th>Actions</th>
+            </tr>
+            {% for i in images %}
+            <tr>
+                <td><strong>{{ i.repo }}</strong></td>
+                <td><code>{{ i.id }}</code></td>
+                <td>
+                    <a class="btn red" href="/remove/image/{{ i.id }}">🗑️ Remove</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </section>
+
+    <!-- ================= VOLUMES ================= -->
+    <section id="volumes" class="tab hidden">
+        <h2>Create Volume</h2>
+        <form method="POST" class="form-box">
+            <input type="hidden" name="action" value="create_volume">
+            <input name="volume_name" placeholder="📦 Volume Name" required>
+            <button type="submit">✨ Create Volume</button>
+        </form>
+
+        <h2>Docker Volumes</h2>
+        <table>
+            <tr>
+                <th>Volume Name</th>
+                <th>Actions</th>
+            </tr>
+            {% for v in volumes %}
+            <tr>
+                <td><strong>{{ v }}</strong></td>
+                <td>
+                    <a class="btn red" href="/remove/volume/{{ v }}">🗑️ Remove</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </section>
+
+    <!-- ================= NETWORKS ================= -->
+    <section id="networks" class="tab hidden">
+        <h2>Create Network</h2>
+        <form method="POST" class="form-box">
+            <input type="hidden" name="action" value="create_network">
+            <input name="network_name" placeholder="🌐 Network Name" required>
+            <select name="driver">
+                <option value="bridge">🌉 Bridge</option>
+                <option value="overlay">🔗 Overlay</option>
+            </select>
+            <button type="submit">✨ Create Network</button>
+        </form>
+
+        <h2>Docker Networks</h2>
+        <table>
+            <tr>
+                <th>Network Name</th>
+                <th>Driver</th>
+                <th>Actions</th>
+            </tr>
+            {% for n in networks %}
+            <tr>
+                <td><strong>{{ n.name }}</strong></td>
+                <td>{{ n.driver }}</td>
+                <td>
+                    <a class="btn red" href="/remove/network/{{ n.name }}">🗑️ Remove</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </section>
+</div>
+
+<!-- ================= LOGS PANEL ================= -->
+{% if logs %}
+<div class="logs-panel">
+    <div class="logs-header">
+        <h3>📋 Logs – {{ log_container }}</h3>
+        <a href="/" class="close-logs">✕</a>
+    </div>
+    <pre class="logs">{{ logs }}</pre>
+</div>
+{% endif %}
+
+<script>
+function showTab(id) {
+    // Hide all tabs
+    document.querySelectorAll('.tab').forEach(t => t.classList.add('hidden'));
+    // Remove active class from all buttons
+    document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+    // Show selected tab
+    document.getElementById(id).classList.remove('hidden');
+    // Add active class to clicked button
+    event.target.classList.add('active');
+}
+</script>
+
+</body>
+</html>
